@@ -46,14 +46,14 @@ type Neuron = {
 
 async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
     const n = exampleIdx.toString().padStart(5, '0');
-    const res = await fetch(`/neurons-index/example-${n}.json`);
+    const res = await fetch(`${process.env.PUBLIC_URL}/neurons-index/example-${n}.json`);
     const j = await res.json();
     return j;
 }
 
 async function getNeuronKeywords(l: number, f: number): Promise<string[]> {
     const neuron = l.toString() + '-' + f.toString();
-    const res = await fetch(`/neurons-index/neuron-${neuron}.json`);
+    const res = await fetch(`${process.env.PUBLIC_URL}/neurons-index/neuron-${neuron}.json`);
     const j = await res.json();
     return j;
 }
