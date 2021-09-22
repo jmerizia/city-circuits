@@ -58,10 +58,16 @@ async function getNeuronKeywords(l: number, f: number): Promise<string[]> {
     return j;
 }
 
+async function getDataset(): Promise<Example[]> {
+    const res = await fetch(`${process.env.PUBLIC_URL}/dataset-with-tokens.json`)
+    const dataset = await res.json();
+    return dataset;
+}
+
 
 function App() {
     const [query, setQuery] = useState('');
-    const [dataset, setDataset] = useState<readonly Example[] | null>(null);
+    const [dataset, setDataset] = useState<Example[] | null>(null);
     const [results, setResults] = useState<number[]>([]);
     const [selectedExample, setSelectedExample] = useState<number>(-1);
     const [neuronData, setNeuronData] = useState<NeuronData | null>(null);
@@ -107,8 +113,7 @@ function App() {
 
     useEffect(() => {
         (async () => {
-            const res = await fetch('/dataset-with-tokens.json')
-            const dataset = await res.json();
+            const dataset = await getDataset();
             setDataset(dataset);
         })();
     }, []);
