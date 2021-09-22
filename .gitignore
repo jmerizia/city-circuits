@@ -25,3 +25,5 @@ yarn-error.log*
 data/
 neurons.json
 public/neurons-index/
+
+__pycache__/
