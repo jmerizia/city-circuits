@@ -211,7 +211,7 @@ function App() {
                                 <b style={{ marginRight: '5px' }}>{layerIdx}</b>
                                 {neuronData.records
                                     .filter(r => r.l === layerIdx)
-                                    .sort((a, b) => b.f - a.f)
+                                    .sort((a, b) => a.f - b.f)
                                     .map((r, idx) => {
                                         const selected = selectedNeuron && selectedNeuron.l === layerIdx && selectedNeuron.f === r.f;
                                         const a = r.a[selectedToken]; // roughly between -1 and 15
