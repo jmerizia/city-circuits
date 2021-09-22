@@ -109,3 +109,16 @@ code {
 .neuron:hover {
     background-color: lightblue;
 }
+
+.keywords {
+    position: absolute;
+    word-break: break-word;
+    overflow: scroll;
+}
+
+.keyword {
+    margin: 5px;
+    padding: 2px;
+    background-color: #eee;
+    line-height: 25px;
+}

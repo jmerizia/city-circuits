@@ -51,6 +51,14 @@ async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
     return j;
 }
 
+async function getNeuronKeywords(l: number, f: number): Promise<string[]> {
+    const neuron = l.toString() + '-' + f.toString();
+    const res = await fetch(`/neurons-index/neuron-${neuron}.json`);
+    const j = await res.json();
+    return j;
+}
+
+
 function App() {
     const [query, setQuery] = useState('');
     const [dataset, setDataset] = useState<readonly Example[] | null>(null);
@@ -59,6 +67,7 @@ function App() {
     const [neuronData, setNeuronData] = useState<NeuronData | null>(null);
     const [selectedNeuron, setSelectedNeuron] = useState<Neuron | null>(null);
     const [selectedToken, setSelectedToken] = useState<number>(0);
+    const [keywords, setKeywords] = useState<string[]>([]);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
     const canvasContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -103,6 +112,15 @@ function App() {
             setDataset(dataset);
         })();
     }, []);
+
+    useEffect(() => {
+        (async () => {
+            if (selectedNeuron) {
+                const keywords = await getNeuronKeywords(selectedNeuron.l, selectedNeuron.f);
+                setKeywords(keywords);
+            }
+        })();
+    }, [selectedNeuron]);
 
     useEffect(() => {
         if (query) {
@@ -235,11 +253,19 @@ function App() {
                 </div>
             </div>
             <div className='right'>
-                {selectedNeuron &&
-                    <p>
-                        Keywords that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
-                    </p>
-                }
+                <div className='keywords'>
+                    {selectedNeuron &&
+                        <p>
+                            Keywords that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                        </p>
+                    }
+                    {keywords
+                        .slice(0, 100)
+                        .map((keyword, idx) => {
+                            return <span key={idx} className='keyword'>{keyword}</span>;
+                        })
+                    }
+                </div>
             </div>
         </div>
     );

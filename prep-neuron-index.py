@@ -8,7 +8,7 @@ assert os.path.exists('neurons.json'), 'Missing neurons.json! Did you run downlo
 with open('neurons.json', 'r') as f:
     neurons = json.loads(f.read())
 
-with open('public/dataset.json', 'r') as f:
+with open('public/dataset-with-tokens.json', 'r') as f:
     dataset = json.loads(f.read())
 
 assert len(dataset) == len(neurons)
@@ -28,5 +28,27 @@ for idx, (example, records) in enumerate(zip(dataset, neurons)):
             'records': records,
             'tokens': [enc.decode([t]) for t in enc.encode(example['text'])]
         }))
+
+# determine keyword-level activations
+neuron_to_keywords = {}
+for idx, (example, records) in enumerate(zip(dataset, neurons)):
+    for record in records:
+        for token, activation in zip(example['tokens'], record['a']):
+            if activation >= 5:
+                l, f = record['l'], record['f']
+                neuron = f'{l}-{f}'
+                if neuron not in neuron_to_keywords:
+                    neuron_to_keywords[neuron] = set()
+                neuron_to_keywords[neuron].add(token)
+
+for k in neuron_to_keywords:
+    neuron_to_keywords[k] = list(sorted(neuron_to_keywords[k]))
+
+for l in range(48):
+    for f in range(1600*4):
+        neuron = f'{l}-{f}'
+        if neuron in neuron_to_keywords:
+            with open(f'public/neurons-index/neuron-{neuron}.json', 'w') as f:
+                f.write(json.dumps(neuron_to_keywords[neuron]))
 
 print('done!')
