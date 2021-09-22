@@ -53,6 +53,8 @@ code {
 .right {
     flex: 1;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .top-left {
@@ -60,6 +62,16 @@ code {
 }
 
 .bottom-left {
+    flex: 1;
+    position: relative;
+}
+
+.top-right {
+    flex: 1;
+    position: relative;
+}
+
+.bottom-right {
     flex: 1;
     position: relative;
 }
@@ -112,6 +124,8 @@ code {
 
 .keywords {
     position: absolute;
+    width: 100%;
+    height: 100%;
     word-break: break-word;
     overflow: scroll;
 }
@@ -121,4 +135,11 @@ code {
     padding: 2px;
     background-color: #eee;
     line-height: 25px;
+}
+
+.plot {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import Plot from 'react-plotly.js';
 import { debounce } from 'debounce';
 
 
@@ -159,6 +160,11 @@ function App() {
         return <div>Loading...</div>;
     }
 
+    const plotY = (selectedNeuron && neuronData && selectedToken > -1) ? 
+        neuronData.records.find(r => r.l === selectedNeuron.l && r.f === selectedNeuron.f)?.a :
+        undefined;
+    const plotX = plotY && range(0, plotY.length);
+
     return (
         <div className='container'>
             <div className='left'>
@@ -268,18 +274,56 @@ function App() {
                 </div>
             </div>
             <div className='right'>
-                <div className='keywords'>
-                    {selectedNeuron &&
-                        <p>
-                            Tokens that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
-                        </p>
-                    }
-                    {keywords
-                        .slice(0, 100)
-                        .map((keyword, idx) => {
-                            return <span key={idx} className='keyword'>{keyword}</span>;
-                        })
-                    }
+                <div className='top-right'>
+                    <div className='keywords'>
+                        {selectedNeuron &&
+                            <p>
+                                Tokens that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                            </p>
+                        }
+                        {selectedNeuron && keywords
+                            .slice(0, 100)
+                            .map((keyword, idx) => {
+                                return <span key={idx} className='keyword'>{keyword}</span>;
+                            })
+                        }
+                    </div>
+                </div>
+                <div className='bottom-right'>
+                    <div className='plot'>
+                        {plotX && plotY && selectedNeuron && neuronData &&
+                            <Plot
+                                data={[
+                                    {
+                                        x: plotX,
+                                        y: plotY,
+                                        type: 'scatter',
+                                        mode: 'lines+markers',
+                                        marker: {color: 'red'},
+                                    }
+                                ]}
+                                layout={{
+                                    title: `activation of (${selectedNeuron.l}, ${selectedNeuron.f})`,
+                                    margin: {
+                                        l: 20,
+                                        r: 20,
+                                        b: 80,
+                                        t: 80,
+                                        pad: 4
+                                    },
+                                    xaxis: {
+                                        tickmode: 'array',
+                                        tickvals: range(0, neuronData.tokens.length),
+                                        ticktext: neuronData.tokens,
+                                    },
+                                    shapes: [
+                                        { type: 'line', x0: selectedToken, x1: selectedToken, y0: 0, y1: 1 },
+                                    ]
+                                }}
+                                style={{ width: '100%', height: '100%' }}
+                            />
+                        }
+                    </div>
                 </div>
             </div>
         </div>
