@@ -1,58 +1,108 @@
-import Fuse from 'fuse.js';
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { debounce } from 'debounce';
 
 
-type Box = {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-};
+const NUM_LAYERS = 48;
 
-function usePrevious<T>(value: T) {
-    const ref = useRef<T>();
-    useEffect(() => {
-        ref.current = value;
-    }, [value]);
-    return ref.current;
+function countMatches(query: string, text: string): number {
+    const words = query.split(/\s+/).filter(w => w.length > 0);
+    return words.filter(word => text.toLowerCase().includes(word.toLowerCase())).length;
 }
 
+function getNameFromUrl(url: string): string {
+    return decodeURI(url.split('/').pop() || '');
+}
+
+function range(a: number, b: number) {
+    const arr = [];
+    for (let i = a; i < b; i++) {
+        arr.push(i);
+    }
+    return arr;
+}
+
+type Example = {
+    url: string;
+    text: string;
+    tokens: string[];
+};
+
+type Record = {
+    l: number;
+    f: number;
+    a: number[];
+}
+
+type NeuronData = {
+    example: Example;
+    records: Record[];
+    tokens: string[];
+}
+
+type Neuron = {
+    l: number;
+    f: number;
+};
+
+async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
+    const n = exampleIdx.toString().padStart(5, '0');
+    const res = await fetch(`/neurons-index/example-${n}.json`);
+    const j = await res.json();
+    return j;
+}
 
 function App() {
     const [query, setQuery] = useState('');
-    const [examples, setExamples] = useState<readonly string[] | null>(null);
-    const [fuse, setFuse] = useState<Fuse<string> | null>(null);
-    const [results, setResults] = useState<Fuse.FuseResult<string>[]>([]);
-    const [selectedExample, setSelectedExample] = useState<string | null>(null);
-    const [boxes, setBoxes] = useState<readonly Box[]>([]);
-    const [hovering, setHovering] = useState<number>(-1);
+    const [dataset, setDataset] = useState<readonly Example[] | null>(null);
+    const [results, setResults] = useState<number[]>([]);
+    const [selectedExample, setSelectedExample] = useState<number>(-1);
+    const [neuronData, setNeuronData] = useState<NeuronData | null>(null);
+    const [selectedNeuron, setSelectedNeuron] = useState<Neuron | null>(null);
+    const [selectedToken, setSelectedToken] = useState<number>(0);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
-    const prevHovering = usePrevious(hovering);
+    const canvasContainerRef = React.useRef<HTMLDivElement>(null);
 
     const search = useMemo(() => debounce(async (query: string) => {
-        if (!fuse) {
+        if (!dataset) {
             return;
         }
-        const results = fuse.search(query);
+        const results = dataset
+            .map((e, idx): [Example, number] => [e, idx])
+            .sort(([e_a, idx_a], [e_b, idx_b]) => {
+                // compare url
+                const name_a_matches = countMatches(query, getNameFromUrl(e_a.url));
+                const name_b_matches = countMatches(query, getNameFromUrl(e_b.url));
+                if (name_a_matches > 0 || name_b_matches > 0) {
+                    return name_b_matches - name_a_matches;
+                } else {
+                    // compare text
+                    const text_a_matches = countMatches(query, e_a.text);
+                    const text_b_matches = countMatches(query, e_b.text);
+                    if (text_a_matches > 0 || text_b_matches > 0) {
+                        return text_b_matches - text_a_matches;
+                    } else {
+                        // compare idx
+                        return idx_a - idx_b;
+                    }
+                }
+            })
+            .filter(([e, idx]) => {
+                // filter out results that don't match at all
+                const name_matches = countMatches(query, getNameFromUrl(e.url));
+                const text_matches = countMatches(query, e.text);
+                return name_matches > 0 || text_matches > 0;
+            })
+            .map(([e, idx]) => idx);
         setResults(results);
-    }, 200), [fuse]);
+    }, 200), [dataset]);
 
     useEffect(() => {
         (async () => {
-            const res = await fetch('/examples.json')
-            const examples = await res.json();
-            setExamples(examples);
+            const res = await fetch('/dataset-with-tokens.json')
+            const dataset = await res.json();
+            setDataset(dataset);
         })();
     }, []);
-
-    useEffect(() => {
-        if (examples) {
-            const fuse = new Fuse(examples, { includeMatches: true });
-            setFuse(fuse);
-        }
-    }, [examples]);
 
     useEffect(() => {
         if (query) {
@@ -63,89 +113,133 @@ function App() {
     }, [query, search]);
 
     useEffect(() => {
-        const boxes: Box[] = [];
-        const size = 5;
-        const padding = 1;
-        for (let i = 0; i < 80; i++) {
-            for (let j = 0; j < 80; j++) {
-                boxes.push({
-                    x: i * size + padding,
-                    y: j * size + padding,
-                    width: size - padding * 2,
-                    height: size - padding * 2,
-                });
+        (async () => {
+            if (selectedExample > -1) {
+                const data = await getNeuronData(selectedExample);
+                setNeuronData(data);
             }
-        }
-        setBoxes(boxes);
-    }, []);
+        })();
+    }, [selectedExample]);
 
     useEffect(() => {
-        if (canvasRef.current) {
+        if (canvasRef.current && canvasContainerRef.current) {
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) {
-                ctx.fillStyle = 'black';
-                let cnt = 0;
-                for (const box of boxes) {
-                    ctx.fillRect(box.x, box.y, box.width, box.height);
-                    cnt++;
-                }
-                console.log('Rendered', cnt, 'items');
+                ctx.canvas.width = canvasContainerRef.current.clientWidth;
+                ctx.canvas.height = canvasContainerRef.current.clientHeight;
             }
         }
-    }, [canvasRef, boxes]);
+    }, [canvasRef, canvasContainerRef]);
+
+    if (!dataset) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className='container'>
             <div className='left'>
-                <p>
-                    Loaded {examples ? examples.length : '...'} prompts.
-                </p>
-                <input
-                    value={query}
-                    onChange={e => setQuery(e.target.value)}
-                    style={{ width: '80%', padding: 5, margin: 5 }}
-                />
-                <div className='results-box'>
-                    <p>Found {results.length} results. Showing top 50:</p>
-                    {results.slice(0, 10).map((result, idx) => {
-                        return <div
-                            key={idx}
-                            className='result'
-                            style={{
-                                fontWeight: selectedExample === result.item ? 'bold' : undefined,
-                            }}
-                            onClick={() => setSelectedExample(result.item)}
-                        >
-                            {result.item}
-                        </div>;
-                    })}
+                <div className='top-left'>
+                    <p>
+                        Search for a city that has population over 100k:
+                    </p>
+                    <input
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                        style={{ width: '80%', padding: 5, margin: 5 }}
+                    />
+                </div>
+                <div className='bottom-left'>
+                    <div className='results'>
+                        <p>{results.length} results:</p>
+                        {results.slice(0, 100).map((result, idx) => {
+                            return <div
+                                key={idx}
+                                className='result'
+                                style={{
+                                    backgroundColor: selectedExample === result ? 'lightblue' : undefined,
+                                }}
+                                onClick={() => setSelectedExample(result)}
+                            >
+                                <b>{getNameFromUrl(dataset[result].url)}:</b>{' '}
+                                {dataset[result].tokens.map((token, tokenIdx) => {
+                                    return <span
+                                        key={tokenIdx}
+                                        style={{
+                                            textDecoration: selectedToken === tokenIdx ? 'underline' : undefined,
+                                            fontStyle: selectedToken === tokenIdx ? 'italic' : undefined,
+                                        }}
+                                    >
+                                        {token}
+                                    </span>;
+                                })}
+                            </div>;
+                        })}
+                    </div>
                 </div>
             </div>
-            <div className='right' style={{ overflow: 'scroll' }}>
-                <canvas
-                    ref={canvasRef}
-                    // style={{
-                    //     width: '100%',
-                    //     height: '100%',
-                    // }}
-                    width={500}
-                    height={500}
-                    style={{ border: 'thin solid black' }}
-                    onMouseMove={e => {
-                        // compute local coordinates
-                        if (!canvasRef.current) return;
-                        const rect = canvasRef.current.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const y = e.clientY - rect.top;
-                        // find the box that contains the point
-                        const idx = boxes.findIndex(b => {
-                            return x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height;
-                        });
-                        if (idx !== hovering) {
-                            setHovering(idx);
-                        }
-                    }}
-                />
+            <div className='center'>
+                <div className='top-center'>
+                    <div
+                        className='layers'
+                    >
+                        <b> Activations per layer: </b>
+                        {neuronData && range(0, NUM_LAYERS).map(layerIdx => {
+                            return <div className='layer' key={layerIdx}>
+                                <b style={{ marginRight: '5px' }}>{layerIdx}</b>
+                                {neuronData.records
+                                    .filter(r => r.l === layerIdx)
+                                    .sort(r => r.f)
+                                    .map((r, idx) => {
+                                        const selected = selectedNeuron && selectedNeuron.l === layerIdx && selectedNeuron.f === r.f;
+                                        const a = r.a[selectedToken]; // roughly between -1 and 15
+                                        const normed = Math.min(1, Math.max(0, (a + 1) / 15));
+                                        const color = `rgba(0, 255, 0, ${normed})`;
+                                        return <div
+                                            className='neuron'
+                                            key={idx}
+                                            style={{
+                                                backgroundColor: color,
+                                                outline: selected ? 'thin solid black' : undefined
+                                            }}
+                                            onClick={() => {
+                                                if (selected) {
+                                                    setSelectedNeuron(null);
+                                                } else {
+                                                    setSelectedNeuron({ l: layerIdx, f: r.f });
+                                                }
+                                            }}
+                                        >
+                                            {r.f}
+                                            {/* {Math.round(r.a[selectedToken] * 10) / 10} */}
+                                        </div>;
+                                    })
+                                }
+                            </div>;
+                        })}
+                    </div>
+                </div>
+                <div className='bottom-center'>
+                    {neuronData && selectedExample > -1 &&
+                        <input
+                            type='range'
+                            min={0}
+                            max={dataset[selectedExample].tokens.length - 1}
+                            value={selectedToken}
+                            style={{  width: '100%' }}
+                            onChange={e => {
+                                e.preventDefault();
+                                setSelectedToken(parseInt(e.target.value));
+                            }}
+                        />
+                    }
+                </div>
+            </div>
+            <div className='right'>
+                {selectedNeuron &&
+                    <p>
+                        Keywords that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                    </p>
+                }
             </div>
         </div>
     );
