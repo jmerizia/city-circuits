@@ -91,8 +91,8 @@ function App() {
                     return name_b_matches - name_a_matches;
                 } else {
                     // compare text
-                    const text_a_matches = countMatches(query, e_a.text);
-                    const text_b_matches = countMatches(query, e_b.text);
+                    const text_a_matches = countMatches(query, e_a.tokens.join(''));
+                    const text_b_matches = countMatches(query, e_b.tokens.join(''));
                     if (text_a_matches > 0 || text_b_matches > 0) {
                         return text_b_matches - text_a_matches;
                     } else {
@@ -104,7 +104,7 @@ function App() {
             .filter(([e, idx]) => {
                 // filter out results that don't match at all
                 const name_matches = countMatches(query, getNameFromUrl(e.url));
-                const text_matches = countMatches(query, e.text);
+                const text_matches = countMatches(query, e.tokens.join(''));
                 return name_matches > 0 || text_matches > 0;
             })
             .map(([e, idx]) => idx);
@@ -261,7 +261,7 @@ function App() {
                 <div className='keywords'>
                     {selectedNeuron &&
                         <p>
-                            Keywords that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                            Tokens that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
                         </p>
                     }
                     {keywords
