@@ -74,6 +74,7 @@ function App() {
     const [selectedNeuron, setSelectedNeuron] = useState<Neuron | null>(null);
     const [selectedToken, setSelectedToken] = useState<number>(0);
     const [keywords, setKeywords] = useState<string[]>([]);
+    const [hoveringNeuron, setHoveringNeuron] = useState<Neuron | null>(null);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
     const canvasContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -214,6 +215,7 @@ function App() {
                                     .sort((a, b) => a.f - b.f)
                                     .map((r, idx) => {
                                         const selected = selectedNeuron && selectedNeuron.l === layerIdx && selectedNeuron.f === r.f;
+                                        const hovering = hoveringNeuron && hoveringNeuron.l === layerIdx && hoveringNeuron.f === r.f;
                                         const a = r.a[selectedToken]; // roughly between -1 and 15
                                         const normed = Math.min(1, Math.max(0, (a + 1) / 15));
                                         const color = `rgba(0, 255, 0, ${normed})`;
@@ -231,9 +233,17 @@ function App() {
                                                     setSelectedNeuron({ l: layerIdx, f: r.f });
                                                 }
                                             }}
+                                            onMouseOver={() => {
+                                                setHoveringNeuron({ l: layerIdx, f: r.f });
+                                            }}
+                                            onMouseOut={() => {
+                                                setHoveringNeuron(null);
+                                            }}
                                         >
-                                            {r.f}
-                                            {/* {Math.round(r.a[selectedToken] * 10) / 10} */}
+                                            {hovering ?
+                                                Math.round(r.a[selectedToken] * 10) / 10 :
+                                                r.f
+                                            }
                                         </div>;
                                     })
                                 }
