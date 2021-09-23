@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Plot from 'react-plotly.js';
+import ReactTooltip from 'react-tooltip';
 import { debounce } from 'debounce';
 
 
@@ -28,19 +29,25 @@ type Example = {
     tokens: string[];
 };
 
-type Record = {
+type NeuronActivation = {
     l: number;
     f: number;
     a: number[];
 }
 
+type Logit = {
+    tok: string;
+    prob: number;
+}
+
 type NeuronData = {
     example: Example;
-    records: Record[];
+    activations: NeuronActivation[];
+    logits: Logit[][][];  // [layer][seq][k]
     tokens: string[];
 }
 
-type Neuron = {
+type NeuronIdentifier = {
     l: number;
     f: number;
 };
@@ -72,10 +79,10 @@ function App() {
     const [results, setResults] = useState<number[]>([]);
     const [selectedExample, setSelectedExample] = useState<number>(-1);
     const [neuronData, setNeuronData] = useState<NeuronData | null>(null);
-    const [selectedNeuron, setSelectedNeuron] = useState<Neuron | null>(null);
+    const [selectedNeuron, setSelectedNeuron] = useState<NeuronIdentifier | null>(null);
     const [selectedToken, setSelectedToken] = useState<number>(0);
     const [keywords, setKeywords] = useState<string[]>([]);
-    const [hoveringNeuron, setHoveringNeuron] = useState<Neuron | null>(null);
+    // const [hoveringNeuron, setHoveringNeuron] = useState<NeuronIdentifier | null>(null);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
     const canvasContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -161,7 +168,7 @@ function App() {
     }
 
     const plotY = (selectedNeuron && neuronData && selectedToken > -1) ? 
-        neuronData.records.find(r => r.l === selectedNeuron.l && r.f === selectedNeuron.f)?.a :
+        neuronData.activations.find(r => r.l === selectedNeuron.l && r.f === selectedNeuron.f)?.a :
         undefined;
     const plotX = plotY && range(0, plotY.length);
 
@@ -212,16 +219,27 @@ function App() {
                     <div
                         className='layers'
                     >
-                        <b> Activations per layer: </b>
+                        <b>Logits/Activations per layer: </b>
                         {neuronData && range(0, NUM_LAYERS).map(layerIdx => {
+                            const topLogit = neuronData.logits[layerIdx][selectedToken][0];
+                            const logits = neuronData.logits[layerIdx][selectedToken];
+                            const tooltipText = `${logits.map(l => `${l.tok} - ${Math.round(l.prob*100)}%`).join('<br />')}`;
                             return <div className='layer' key={layerIdx}>
                                 <b style={{ marginRight: '5px' }}>{layerIdx}</b>
-                                {neuronData.records
+                                <ReactTooltip
+                                    id='logit-tooltip'
+                                    place='right'
+                                    multiline={true}
+                                />
+                                <div className='logit' data-tip={tooltipText}>
+                                    {topLogit.tok.replace(' ', '␣')}
+                                </div>
+                                {neuronData.activations
                                     .filter(r => r.l === layerIdx)
                                     .sort((a, b) => a.f - b.f)
                                     .map((r, idx) => {
                                         const selected = selectedNeuron && selectedNeuron.l === layerIdx && selectedNeuron.f === r.f;
-                                        const hovering = hoveringNeuron && hoveringNeuron.l === layerIdx && hoveringNeuron.f === r.f;
+                                        // const hovering = hoveringNeuron && hoveringNeuron.l === layerIdx && hoveringNeuron.f === r.f;
                                         const a = r.a[selectedToken]; // roughly between -1 and 15
                                         const normed = Math.min(1, Math.max(0, (a + 1) / 15));
                                         const color = `rgba(0, 255, 0, ${normed})`;
@@ -239,22 +257,24 @@ function App() {
                                                     setSelectedNeuron({ l: layerIdx, f: r.f });
                                                 }
                                             }}
-                                            onMouseOver={() => {
-                                                setHoveringNeuron({ l: layerIdx, f: r.f });
-                                            }}
-                                            onMouseOut={() => {
-                                                setHoveringNeuron(null);
-                                            }}
+                                            // onMouseOver={() => {
+                                            //     setHoveringNeuron({ l: layerIdx, f: r.f });
+                                            // }}
+                                            // onMouseOut={() => {
+                                            //     setHoveringNeuron(null);
+                                            // }}
                                         >
-                                            {hovering ?
+                                            {/* {hovering ?
                                                 Math.round(r.a[selectedToken] * 10) / 10 :
                                                 r.f
-                                            }
+                                            } */}
+                                            {r.f}
                                         </div>;
                                     })
                                 }
                             </div>;
                         })}
+                        <div style={{ flex: 1, height: '10px' }} />
                     </div>
                 </div>
                 <div className='bottom-center'>

@@ -101,7 +101,7 @@ code {
 
 .layer {
     display: flex;
-    font-size: 11px;
+    font-size: 9px;
     border-radius: 5px;
     border: 1px solid #eee;
     padding: 2px;
@@ -110,12 +110,18 @@ code {
 
 .neuron {
     flex: 1;
-    /* border: thin solid black; */
     background-color: #eee;
     max-width: 100px;
-    margin: 1px;
     text-align: center;
     cursor: pointer;
+    border-left: 1px solid black;
+}
+
+.logit {
+    background-color: #eee;
+    min-width: 50px;
+    margin: 1px;
+    text-align: center;
 }
 
 .neuron:hover {

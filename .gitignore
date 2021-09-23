@@ -24,6 +24,11 @@ yarn-error.log*
 
 data/
 neurons.json
+neurons000.json
+neurons001.json
+neurons002.json
+neurons003.json
+neurons004.json
 public/neurons-index/
 
 __pycache__/
