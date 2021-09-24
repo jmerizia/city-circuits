@@ -40,7 +40,7 @@ function Home() {
                     <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=21-775`}>(21, 775)</a> -
                     this neuron activates most strongly when the words "city" and "capital"
                     and followed by "of", indicating this neuron plays a role in signaling to future layers
-                    that the captial of a city needs to be predicted.
+                    that the capital of a city needs to be predicted.
                 </p>
             </li>
             <li>
