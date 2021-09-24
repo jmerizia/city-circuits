@@ -25,7 +25,7 @@ function Home() {
         <p>
             You can find the source code on <a href='https://github.com/jmerizia/city-circuits'>GitHub</a>.
         </p>
-        <Link to='/viewer' className='main-button'>
+        <Link to={`${process.env.PUBLIC_URL}/viewer`} className='main-button'>
             Explore GPT-2 →
         </Link>
         <h2>
