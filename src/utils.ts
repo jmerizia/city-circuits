@@ -91,7 +91,7 @@ export async function getNeuronMatches(l: number, f: number): Promise<NeuronMatc
 }
 
 export async function getDataset(): Promise<Example[]> {
-    const res = await fetch(`/dataset-with-tokens.json`)
+    const res = await fetch(`${process.env.PUBLIC_URL}/dataset-with-tokens.json`)
     const dataset = await res.json();
     return dataset;
 }
