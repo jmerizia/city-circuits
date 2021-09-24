@@ -1,97 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
-// import ReactTooltip from 'react-tooltip';
-// import { LineChart, Line, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import ReactTooltip from 'react-tooltip';
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { debounce } from 'debounce';
-
-
-const NUM_LAYERS = 48;
-
-function getBaseStaticUrl(): string {
-    if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:8095/build/city-circuits/';
-    } else {
-        return '/';
-    }
-}
-
-function countMatches(query: string, text: string): number {
-    const words = query.split(/\s+/).filter(w => w.length > 0);
-    return words.filter(word => text.toLowerCase().includes(word.toLowerCase())).length;
-}
-
-function getNameFromUrl(url: string): string {
-    return decodeURI(url.split('/').pop() || '');
-}
-
-function range(a: number, b: number) {
-    const arr = [];
-    for (let i = a; i < b; i++) {
-        arr.push(i);
-    }
-    return arr;
-}
-
-export function zip<T, U>(a: T[], b: U[]): [T, U][] {
-    const out: [T, U][] = [];
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        out.push([a[i], b[i]]);
-    }
-    return out;
-}
-
-type Example = {
-    url: string;
-    text: string;
-    tokens: string[];
-};
-
-type NeuronActivation = {
-    l: number;
-    f: number;
-    a: number[];
-}
-
-type Logit = {
-    tok: string;
-    prob: number;
-}
-
-type NeuronData = {
-    example: Example;
-    activations: NeuronActivation[];
-    logits: Logit[][][];  // [layer][seq][k]
-    tokens: string[];
-}
-
-type NeuronIdentifier = {
-    l: number;
-    f: number;
-};
-
-type NeuronMatches = {
-    exampleIdx: number;
-    activations: number[];
-};
-
-async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
-    const n = exampleIdx.toString().padStart(5, '0');
-    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/example-${n}.json`);
-    const j = await res.json();
-    return j;
-}
-
-async function getNeuronMatches(l: number, f: number): Promise<NeuronMatches[]> {
-    const neuron = l.toString() + '-' + f.toString();
-    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/neuron-${neuron}.json`);
-    const j = await res.json();
-    return j;
-}
-
-async function getDataset(): Promise<Example[]> {
-    const res = await fetch(`${getBaseStaticUrl()}/dataset-with-tokens.json`)
-    const dataset = await res.json();
-    return dataset;
-}
+import {
+    countMatches,
+    Example,
+    getDataset,
+    getNameFromUrl,
+    getNeuronData,
+    getNeuronMatches,
+    NeuronData,
+    NeuronIdentifier,
+    NeuronMatches,
+    range,
+    zip
+} from './utils';
 
 
 function App() {
@@ -171,13 +94,13 @@ function App() {
         })();
     }, [selectedExample]);
 
-    if (!dataset) {
-        return <div>Loading...</div>;
-    }
-
     const plotY = (selectedNeuron && neuronData && selectedToken > -1) ? 
         neuronData.activations.find(r => r.l === selectedNeuron.l && r.f === selectedNeuron.f)?.a :
         undefined;
+
+    if (!dataset) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className='container'>
@@ -227,18 +150,18 @@ function App() {
                         className='layers'
                     >
                         <b>Logits/Activations per layer: </b>
-                        {neuronData && range(0, NUM_LAYERS).map(layerIdx => {
+                        {neuronData && range(0, 48).map(layerIdx => {
                             const topLogit = neuronData.logits[layerIdx][selectedToken][0];
                             const logits = neuronData.logits[layerIdx][selectedToken];
                             const tooltipText = `${logits.map(l => `${l.tok.replace(' ', '␣')} - ${Math.round(l.prob*100)}%`).join('<br />')}`;
                             return <div className='layer' key={layerIdx}>
                                 <b style={{ marginRight: '5px' }}>{layerIdx}</b>
-                                {/* <ReactTooltip
+                                <ReactTooltip
                                     id='logit-tooltip'
                                     place='right'
                                     multiline={true}
-                                /> */}
-                                <div className='logit' /* data-for='logit-tooltip' */ data-tip={tooltipText}>
+                                />
+                                <div className='logit' data-for='logit-tooltip' data-tip={tooltipText}>
                                     {topLogit.tok.replace(' ', '␣')}
                                 </div>
                                 {neuronData.activations
@@ -317,16 +240,16 @@ function App() {
                 <div className='bottom-right'>
                     <div className='plot'>
                         {plotY && selectedNeuron && neuronData && selectedExample > -1 &&
-                            'todo'
-                            // <ResponsiveContainer width='100%' aspect={4/3}>
-                            //     <LineChart
-                            //         data={zip(plotY, dataset[selectedExample].tokens).map(([y, tok]) => ({ y, tok }))}
-                            //     >
-                            //         <Line type="monotone" dataKey='y' stroke="#8884d8" />
-                            //         <XAxis dataKey="tok" angle={-45} textAnchor="end" interval={0} />
-                            //         <YAxis />
-                            //     </LineChart>
-                            // </ResponsiveContainer>
+                            <ResponsiveContainer width='100%' aspect={1}>
+                                <LineChart
+                                    data={zip(plotY, dataset[selectedExample].tokens).map(([y, tok]) => ({ y, tok }))}
+                                >
+                                    <Line type="monotone" dataKey='y' stroke="#8884d8" />
+                                    <XAxis dataKey="tok" angle={-45} textAnchor="end" interval={0} />
+                                    <YAxis />
+                                    <Tooltip />
+                                </LineChart>
+                            </ResponsiveContainer>
                         }
                     </div>
                 </div>

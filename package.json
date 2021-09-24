@@ -26,7 +26,7 @@
   },
   "scripts": {
     "start": "PORT=8000 react-scripts start",
-    "serve": "serve -l 8095",
+    "serve": "serve -l 8001",
     "build": "BUILD_PATH='build/city-circuits' react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

@@ -34,7 +34,7 @@ enc = get_encoder()
 base_path = 'build/city-circuits/neurons-index'
 
 if not os.path.exists(base_path):
-    os.mkdir(base_path)
+    os.makedirs(base_path, exist_ok=True)
 
 num_examples = len(dataset)
 

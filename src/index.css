@@ -115,6 +115,7 @@ code {
     text-align: center;
     cursor: pointer;
     border-left: 1px solid black;
+    user-select: none;
 }
 
 .logit {
