@@ -9,11 +9,11 @@ export function usePrevious<T>(value: T) {
     return ref.current;
 }
 
-export function getBaseStaticUrl(): string {
+export function getBaseIndexPath(): string {
     if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:8001/build/city-circuits';
+        return 'http://localhost:8001/data/index';
     } else {
-        return '/city-circuits';
+        return '/city-circuits-index/';
     }
 }
 
@@ -78,14 +78,14 @@ export type NeuronMatches = {
 
 export async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
     const n = exampleIdx.toString().padStart(5, '0');
-    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/example-${n}.json`);
+    const res = await fetch(`${getBaseIndexPath()}/example-${n}.json`);
     const j = await res.json();
     return j;
 }
 
 export async function getNeuronMatches(l: number, f: number): Promise<NeuronMatches[]> {
     const neuron = l.toString() + '-' + f.toString();
-    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/neuron-${neuron}.json`);
+    const res = await fetch(`${getBaseIndexPath()}/neuron-${neuron}.json`);
     const j = await res.json();
     return j;
 }

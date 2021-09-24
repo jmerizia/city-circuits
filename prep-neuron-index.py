@@ -8,16 +8,16 @@ from encoder import get_encoder
 from tqdm import tqdm
 
 
-assert os.path.exists('neurons000.json'), 'Missing neurons000.json! Did you run download-neurons.py first?'
-assert os.path.exists('neurons001.json'), 'Missing neurons001.json! Did you run download-neurons.py first?'
-assert os.path.exists('neurons002.json'), 'Missing neurons002.json! Did you run download-neurons.py first?'
-assert os.path.exists('neurons003.json'), 'Missing neurons003.json! Did you run download-neurons.py first?'
-assert os.path.exists('neurons004.json'), 'Missing neurons004.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons000.json'), 'Missing data/neurons000.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons001.json'), 'Missing data/neurons001.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons002.json'), 'Missing data/neurons002.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons003.json'), 'Missing data/neurons003.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons004.json'), 'Missing data/neurons004.json! Did you run download-neurons.py first?'
 
 
 def iter_neuron_records():
     for i in range(5):
-        with open(f'neurons{i:03d}.json', 'r') as f:
+        with open(f'data/neurons{i:03d}.json', 'r') as f:
             for record in json.load(f):
                 yield record
 
@@ -31,7 +31,7 @@ with open('public/dataset-with-tokens.json', 'r') as f:
 
 enc = get_encoder()
 
-base_path = 'build/city-circuits/neurons-index'
+base_path = 'data/index'
 
 if not os.path.exists(base_path):
     os.makedirs(base_path, exist_ok=True)
