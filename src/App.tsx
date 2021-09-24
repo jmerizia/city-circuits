@@ -12,10 +12,10 @@ export default function App() {
     return (
         <Router>
             <Switch>
-                <Route path="/viewer">
+                <Route path={`${process.env.PUBLIC_URL}/viewer`}>
                     <Viewer />
                 </Route>
-                <Route path="/">
+                <Route path={`${process.env.PUBLIC_URL}/`}>
                     <Home />
                 </Route>
             </Switch>
