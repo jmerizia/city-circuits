@@ -6,20 +6,16 @@ import os
 import json
 from encoder import get_encoder
 from tqdm import tqdm
+import jsonlines
 
 
-assert os.path.exists('data/neurons000.json'), 'Missing data/neurons000.json! Did you run download-neurons.py first?'
-assert os.path.exists('data/neurons001.json'), 'Missing data/neurons001.json! Did you run download-neurons.py first?'
-assert os.path.exists('data/neurons002.json'), 'Missing data/neurons002.json! Did you run download-neurons.py first?'
-assert os.path.exists('data/neurons003.json'), 'Missing data/neurons003.json! Did you run download-neurons.py first?'
-assert os.path.exists('data/neurons004.json'), 'Missing data/neurons004.json! Did you run download-neurons.py first?'
+assert os.path.exists('data/neurons.jsonl'), 'Missing data/neurons.jsonl! Did you run download-neurons.sh first?'
 
 
 def iter_neuron_records():
-    for i in range(5):
-        with open(f'data/neurons{i:03d}.json', 'r') as f:
-            for record in json.load(f):
-                yield record
+    with jsonlines.open(f'data/neurons.jsonl') as reader:
+        for obj in reader:
+            yield obj
 
 def iter_neurons():
     for l in range(48):
