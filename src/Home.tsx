@@ -48,8 +48,10 @@ function Home() {
                     <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=46-438`}>(46, 438)</a>
                     {' & '}
                     <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=46-5959`}>(46, 5959)</a> -
-                    these neurons spike immediately after seeing the tokens "an" and pretty much nothing else,
-                    which seems strange since they are both close to the last layer of the model.
+                    these neurons spike immediately after seeing the token "an" and pretty much nothing else,
+                    which is peculiar, since they are both close to the last layer of the model.
+                    The fact that this level of granularity of features is present this far down the network
+                    is a testament to how different transformers are from convolutions.
                 </p>
             </li>
             <li>
