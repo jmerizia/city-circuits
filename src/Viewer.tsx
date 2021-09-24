@@ -174,6 +174,7 @@ function Viewer() {
                     </p>
                     <input
                         value={query}
+                        placeholder='Try Paris, Seattle, Beijing...'
                         onChange={e => onUpdateQuery(e.target.value)}
                         style={{ width: '80%', padding: 5, margin: 5 }}
                     />
