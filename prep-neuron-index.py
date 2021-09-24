@@ -1,3 +1,7 @@
+# The purpose of this is to break up the neuron records into many smaller files
+# that can easily be loaded by the browser.
+
+from collections import defaultdict
 import os
 import json
 from encoder import get_encoder
@@ -17,22 +21,29 @@ def iter_neuron_records():
             for record in json.load(f):
                 yield record
 
+def iter_neurons():
+    for l in range(48):
+        for f in range(1600*4):
+            yield l, f
+
 with open('public/dataset-with-tokens.json', 'r') as f:
     dataset = json.loads(f.read())
 
 enc = get_encoder()
 
-if not os.path.exists('public/neurons-index'):
-    os.mkdir('public/neurons-index')
+base_path = 'build/city-circuits/neurons-index'
 
-print('Generating example-level indices into the public/neurons-index folder...')
-# break this up into multiple files for lazier loading on the browser
-neuron_records = iter_neuron_records()
+if not os.path.exists(base_path):
+    os.mkdir(base_path)
+
 num_examples = len(dataset)
+
+print(f'Generating example-level indices into the {base_path} folder...')
+neuron_records = iter_neuron_records()
 for idx in tqdm(range(num_examples)):
     example = dataset[idx]
     neuron_record = next(neuron_records)
-    with open(f'public/neurons-index/example-{idx:05}.json', 'w') as f:
+    with open(os.path.join(base_path, f'example-{idx:05}.json'), 'w') as f:
         f.write(json.dumps({
             'example': example,
             'activations': neuron_record['activations'],
@@ -40,30 +51,23 @@ for idx in tqdm(range(num_examples)):
             'tokens': [enc.decode([t]) for t in enc.encode(example['text'])]
         }))
 
-# determine keyword-level activations
-print('Generating neuron-level indices into the public/neurons-index folder...')
-neuron_to_keywords = {}
+print(f'Generating neuron-level indices into the {base_path} folder...')
+neuron_to_example_indices = defaultdict(list)
 neuron_records = iter_neuron_records()
 for idx in tqdm(range(num_examples)):
     example = dataset[idx]
     neuron_record = next(neuron_records)
     for record in neuron_record['activations']:
-        for token, activation in zip(example['tokens'], record['a']):
-            if activation >= 5:
-                l, f = record['l'], record['f']
-                neuron = f'{l}-{f}'
-                if neuron not in neuron_to_keywords:
-                    neuron_to_keywords[neuron] = set()
-                neuron_to_keywords[neuron].add(token)
+        mx = max(record['a'])
+        if mx >= 2:
+            neuron_to_example_indices[(record['l'], record['f'])].append({ 'activations': record['a'], 'exampleIdx': idx })
 
-for k in neuron_to_keywords:
-    neuron_to_keywords[k] = list(sorted(neuron_to_keywords[k]))
+for k in neuron_to_example_indices.keys():
+    neuron_to_example_indices[k] = list(sorted(neuron_to_example_indices[k], key=lambda e: max(e['activations']), reverse=True))
 
-for l in range(48):
-    for f in range(1600*4):
-        neuron = f'{l}-{f}'
-        if neuron in neuron_to_keywords:
-            with open(f'public/neurons-index/neuron-{neuron}.json', 'w') as f:
-                f.write(json.dumps(neuron_to_keywords[neuron]))
+for (l, f) in iter_neurons():
+    if (l, f) in neuron_to_example_indices:
+        with open(os.path.join(base_path, f'neuron-{l}-{f}.json'), 'w') as file:
+            file.write(json.dumps(neuron_to_example_indices[(l, f)]))
 
-print('done!')
+print('deallocating...')

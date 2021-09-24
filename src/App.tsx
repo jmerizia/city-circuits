@@ -1,10 +1,18 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import Plot from 'react-plotly.js';
-import ReactTooltip from 'react-tooltip';
+// import ReactTooltip from 'react-tooltip';
+// import { LineChart, Line, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { debounce } from 'debounce';
 
 
 const NUM_LAYERS = 48;
+
+function getBaseStaticUrl(): string {
+    if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:8095/build/city-circuits/';
+    } else {
+        return '/';
+    }
+}
 
 function countMatches(query: string, text: string): number {
     const words = query.split(/\s+/).filter(w => w.length > 0);
@@ -21,6 +29,14 @@ function range(a: number, b: number) {
         arr.push(i);
     }
     return arr;
+}
+
+export function zip<T, U>(a: T[], b: U[]): [T, U][] {
+    const out: [T, U][] = [];
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        out.push([a[i], b[i]]);
+    }
+    return out;
 }
 
 type Example = {
@@ -52,22 +68,27 @@ type NeuronIdentifier = {
     f: number;
 };
 
+type NeuronMatches = {
+    exampleIdx: number;
+    activations: number[];
+};
+
 async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
     const n = exampleIdx.toString().padStart(5, '0');
-    const res = await fetch(`${process.env.PUBLIC_URL}/neurons-index/example-${n}.json`);
+    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/example-${n}.json`);
     const j = await res.json();
     return j;
 }
 
-async function getNeuronKeywords(l: number, f: number): Promise<string[]> {
+async function getNeuronMatches(l: number, f: number): Promise<NeuronMatches[]> {
     const neuron = l.toString() + '-' + f.toString();
-    const res = await fetch(`${process.env.PUBLIC_URL}/neurons-index/neuron-${neuron}.json`);
+    const res = await fetch(`${getBaseStaticUrl()}/neurons-index/neuron-${neuron}.json`);
     const j = await res.json();
     return j;
 }
 
 async function getDataset(): Promise<Example[]> {
-    const res = await fetch(`${process.env.PUBLIC_URL}/dataset-with-tokens.json`)
+    const res = await fetch(`${getBaseStaticUrl()}/dataset-with-tokens.json`)
     const dataset = await res.json();
     return dataset;
 }
@@ -81,10 +102,7 @@ function App() {
     const [neuronData, setNeuronData] = useState<NeuronData | null>(null);
     const [selectedNeuron, setSelectedNeuron] = useState<NeuronIdentifier | null>(null);
     const [selectedToken, setSelectedToken] = useState<number>(0);
-    const [keywords, setKeywords] = useState<string[]>([]);
-    // const [hoveringNeuron, setHoveringNeuron] = useState<NeuronIdentifier | null>(null);
-    const canvasRef = React.useRef<HTMLCanvasElement>(null);
-    const canvasContainerRef = React.useRef<HTMLDivElement>(null);
+    const [neuronMatches, setNeuronMatches] = useState<NeuronMatches[]>([]);
 
     const search = useMemo(() => debounce(async (query: string) => {
         if (!dataset) {
@@ -130,8 +148,8 @@ function App() {
     useEffect(() => {
         (async () => {
             if (selectedNeuron) {
-                const keywords = await getNeuronKeywords(selectedNeuron.l, selectedNeuron.f);
-                setKeywords(keywords);
+                const neuronMatches = await getNeuronMatches(selectedNeuron.l, selectedNeuron.f);
+                setNeuronMatches(neuronMatches);
             }
         })();
     }, [selectedNeuron]);
@@ -153,16 +171,6 @@ function App() {
         })();
     }, [selectedExample]);
 
-    useEffect(() => {
-        if (canvasRef.current && canvasContainerRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
-                ctx.canvas.width = canvasContainerRef.current.clientWidth;
-                ctx.canvas.height = canvasContainerRef.current.clientHeight;
-            }
-        }
-    }, [canvasRef, canvasContainerRef]);
-
     if (!dataset) {
         return <div>Loading...</div>;
     }
@@ -170,7 +178,6 @@ function App() {
     const plotY = (selectedNeuron && neuronData && selectedToken > -1) ? 
         neuronData.activations.find(r => r.l === selectedNeuron.l && r.f === selectedNeuron.f)?.a :
         undefined;
-    const plotX = plotY && range(0, plotY.length);
 
     return (
         <div className='container'>
@@ -223,15 +230,15 @@ function App() {
                         {neuronData && range(0, NUM_LAYERS).map(layerIdx => {
                             const topLogit = neuronData.logits[layerIdx][selectedToken][0];
                             const logits = neuronData.logits[layerIdx][selectedToken];
-                            const tooltipText = `${logits.map(l => `${l.tok} - ${Math.round(l.prob*100)}%`).join('<br />')}`;
+                            const tooltipText = `${logits.map(l => `${l.tok.replace(' ', '␣')} - ${Math.round(l.prob*100)}%`).join('<br />')}`;
                             return <div className='layer' key={layerIdx}>
                                 <b style={{ marginRight: '5px' }}>{layerIdx}</b>
-                                <ReactTooltip
+                                {/* <ReactTooltip
                                     id='logit-tooltip'
                                     place='right'
                                     multiline={true}
-                                />
-                                <div className='logit' data-tip={tooltipText}>
+                                /> */}
+                                <div className='logit' /* data-for='logit-tooltip' */ data-tip={tooltipText}>
                                     {topLogit.tok.replace(' ', '␣')}
                                 </div>
                                 {neuronData.activations
@@ -239,7 +246,6 @@ function App() {
                                     .sort((a, b) => a.f - b.f)
                                     .map((r, idx) => {
                                         const selected = selectedNeuron && selectedNeuron.l === layerIdx && selectedNeuron.f === r.f;
-                                        // const hovering = hoveringNeuron && hoveringNeuron.l === layerIdx && hoveringNeuron.f === r.f;
                                         const a = r.a[selectedToken]; // roughly between -1 and 15
                                         const normed = Math.min(1, Math.max(0, (a + 1) / 15));
                                         const color = `rgba(0, 255, 0, ${normed})`;
@@ -257,17 +263,7 @@ function App() {
                                                     setSelectedNeuron({ l: layerIdx, f: r.f });
                                                 }
                                             }}
-                                            // onMouseOver={() => {
-                                            //     setHoveringNeuron({ l: layerIdx, f: r.f });
-                                            // }}
-                                            // onMouseOut={() => {
-                                            //     setHoveringNeuron(null);
-                                            // }}
                                         >
-                                            {/* {hovering ?
-                                                Math.round(r.a[selectedToken] * 10) / 10 :
-                                                r.f
-                                            } */}
                                             {r.f}
                                         </div>;
                                     })
@@ -295,53 +291,42 @@ function App() {
             </div>
             <div className='right'>
                 <div className='top-right'>
-                    <div className='keywords'>
+                    <div className='matches'>
                         {selectedNeuron &&
                             <p>
-                                Tokens that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                                Prompts that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
                             </p>
                         }
-                        {selectedNeuron && keywords
-                            .slice(0, 100)
-                            .map((keyword, idx) => {
-                                return <span key={idx} className='keyword'>{keyword}</span>;
+                        {selectedNeuron && neuronMatches
+                            .slice(0, 30)
+                            .map((neuronMatch, idx) => {
+                                return <span key={idx} className='match'>
+                                    {zip(
+                                        dataset[neuronMatch.exampleIdx].tokens,
+                                        neuronMatch.activations
+                                    ).map(([tok, a], idx) => {
+                                        const normed = Math.min(1, Math.max(0, (a + 1) / 15));
+                                        const color = `rgba(0, 255, 0, ${normed})`;
+                                        return <span style={{ backgroundColor: color }} key={idx}>{tok}</span>;
+                                    })}
+                                </span>;
                             })
                         }
                     </div>
                 </div>
                 <div className='bottom-right'>
                     <div className='plot'>
-                        {plotX && plotY && selectedNeuron && neuronData &&
-                            <Plot
-                                data={[
-                                    {
-                                        x: plotX,
-                                        y: plotY,
-                                        type: 'scatter',
-                                        mode: 'lines+markers',
-                                        marker: {color: 'red'},
-                                    }
-                                ]}
-                                layout={{
-                                    title: `activation of (${selectedNeuron.l}, ${selectedNeuron.f})`,
-                                    margin: {
-                                        l: 20,
-                                        r: 20,
-                                        b: 80,
-                                        t: 80,
-                                        pad: 4
-                                    },
-                                    xaxis: {
-                                        tickmode: 'array',
-                                        tickvals: range(0, neuronData.tokens.length),
-                                        ticktext: neuronData.tokens,
-                                    },
-                                    shapes: [
-                                        { type: 'line', x0: selectedToken, x1: selectedToken, y0: 0, y1: 1 },
-                                    ]
-                                }}
-                                style={{ width: '100%', height: '100%' }}
-                            />
+                        {plotY && selectedNeuron && neuronData && selectedExample > -1 &&
+                            'todo'
+                            // <ResponsiveContainer width='100%' aspect={4/3}>
+                            //     <LineChart
+                            //         data={zip(plotY, dataset[selectedExample].tokens).map(([y, tok]) => ({ y, tok }))}
+                            //     >
+                            //         <Line type="monotone" dataKey='y' stroke="#8884d8" />
+                            //         <XAxis dataKey="tok" angle={-45} textAnchor="end" interval={0} />
+                            //         <YAxis />
+                            //     </LineChart>
+                            // </ResponsiveContainer>
                         }
                     </div>
                 </div>

@@ -128,15 +128,18 @@ code {
     background-color: lightblue;
 }
 
-.keywords {
+.matches {
     position: absolute;
     width: 100%;
     height: 100%;
     word-break: break-word;
     overflow: scroll;
+    display: flex;
+    flex-direction: column;
 }
 
-.keyword {
+.match {
+    flex: 1;
     margin: 5px;
     padding: 2px;
     background-color: #eee;
