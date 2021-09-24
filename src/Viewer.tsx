@@ -27,6 +27,69 @@ function Viewer() {
     const [selectedToken, setSelectedToken] = useState<number>(0);
     const [neuronMatches, setNeuronMatches] = useState<NeuronMatches[]>([]);
 
+    useEffect(() => {
+        const neuron = new URLSearchParams(window.location.search).get('neuron');
+        if (neuron) {
+            const parts = neuron.split('-');
+            if (parts.length === 2) {
+                const l = parseInt(parts[0]);
+                const f = parseInt(parts[1]);
+                if (!isNaN(l) && !isNaN(f)) {
+                    setSelectedNeuron({ l, f });
+                }
+            }
+        }
+
+        const query = new URLSearchParams(window.location.search).get('query');
+        if (query) {
+            setQuery(query);
+        }
+
+        const example = new URLSearchParams(window.location.search).get('example');
+        if (example) {
+            const i = parseInt(example);
+            if (!isNaN(i)) {
+                setSelectedExample(i);
+            }
+        }
+    }, []);
+
+    const onUpdateNeuron = (neuron: { l: number, f: number } | null) => {
+        const q = new URLSearchParams(window.location.search);
+        if (neuron) {
+            q.set('neuron', neuron.l.toString() + '-' + neuron.f.toString());
+        } else {
+            q.delete('neuron');
+        }
+        var newRelativePathQuery = window.location.pathname + '?' + q.toString();
+        window.history.replaceState(null, '', newRelativePathQuery);
+        setSelectedNeuron(neuron);
+    };
+
+    const onUpdateExample = (selectedExample: number) => {
+        const q = new URLSearchParams(window.location.search);
+        if (selectedExample !== -1) {
+            q.set('example', selectedExample.toString());
+        } else {
+            q.delete('example');
+        }
+        var newRelativePathQuery = window.location.pathname + '?' + q.toString();
+        window.history.replaceState(null, '', newRelativePathQuery);
+        setSelectedExample(selectedExample);
+    };
+
+    const onUpdateQuery = (query: string) => {
+        const q = new URLSearchParams(window.location.search);
+        if (query) {
+            q.set('query', query);
+        } else {
+            q.delete('query');
+        }
+        var newRelativePathQuery = window.location.pathname + '?' + q.toString();
+        window.history.replaceState(null, '', newRelativePathQuery);
+        setQuery(query);
+    };
+
     const search = useMemo(() => debounce(async (query: string) => {
         if (!dataset) {
             return;
@@ -111,7 +174,7 @@ function Viewer() {
                     </p>
                     <input
                         value={query}
-                        onChange={e => setQuery(e.target.value)}
+                        onChange={e => onUpdateQuery(e.target.value)}
                         style={{ width: '80%', padding: 5, margin: 5 }}
                     />
                 </div>
@@ -125,7 +188,7 @@ function Viewer() {
                                 style={{
                                     backgroundColor: selectedExample === result ? 'lightblue' : undefined,
                                 }}
-                                onClick={() => setSelectedExample(result)}
+                                onClick={() => onUpdateExample(result)}
                             >
                                 <b>{getNameFromUrl(dataset[result].url)}:</b>{' '}
                                 {dataset[result].tokens.map((token, tokenIdx) => {
@@ -181,9 +244,9 @@ function Viewer() {
                                             }}
                                             onClick={() => {
                                                 if (selected) {
-                                                    setSelectedNeuron(null);
+                                                    onUpdateNeuron(null);
                                                 } else {
-                                                    setSelectedNeuron({ l: layerIdx, f: r.f });
+                                                    onUpdateNeuron({ l: layerIdx, f: r.f });
                                                 }
                                             }}
                                         >

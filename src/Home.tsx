@@ -37,7 +37,7 @@ function Home() {
         <ul>
             <li>
                 <p>
-                    <a href={`${process.env.PUBLIC_URL}/viewer?neuron=21,775`}>(21, 775)</a> -
+                    <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=21-775`}>(21, 775)</a> -
                     this neuron activates most strongly when the words "city" and "capital"
                     and followed by "of", indicating this neuron plays a role in signaling to future layers
                     that the captial of a city needs to be predicted.
@@ -45,23 +45,17 @@ function Home() {
             </li>
             <li>
                 <p>
-                    <a href={`${process.env.PUBLIC_URL}/viewer?neuron=46,438`}>(46, 438)</a>
+                    <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=46-438`}>(46, 438)</a>
                     {' & '}
-                    <a href={`${process.env.PUBLIC_URL}/viewer?neuron=46,5959`}>(46, 5959)</a> -
+                    <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=46-5959`}>(46, 5959)</a> -
                     these neurons spike immediately after seeing the tokens "an" and pretty much nothing else,
                     which seems strange since they are both close to the last layer of the model.
                 </p>
             </li>
             <li>
                 <p>
-                    <a href={`${process.env.PUBLIC_URL}/viewer?neuron=47,4365`}>(47, 4365)</a>
+                    <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=47-4365`}>(47, 4365)</a> -
                     similar to (46, 438) and (46, 5959), except it responds to "a" instead.
-                </p>
-            </li>
-            <li>
-                <p>
-                    <a href={`${process.env.PUBLIC_URL}/viewer?neuron=32,1809`}>(46, 438)</a> -
-                    this neuron responds to certain articles and common/short verbs, such as "of", "is", and "in."
                 </p>
             </li>
         </ul>
