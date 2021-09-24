@@ -11,9 +11,9 @@ export function usePrevious<T>(value: T) {
 
 export function getBaseStaticUrl(): string {
     if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:8001/build/city-circuits/';
+        return 'http://localhost:8001/build/city-circuits';
     } else {
-        return '/';
+        return '/city-circuits';
     }
 }
 
