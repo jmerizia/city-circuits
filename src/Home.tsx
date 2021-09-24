@@ -38,9 +38,9 @@ function Home() {
             <li>
                 <p>
                     <a href={`${process.env.PUBLIC_URL}/viewer?example=803&query=Paris&neuron=21-775`}>(21, 775)</a> -
-                    this neuron activates most strongly when the words "city" and "capital"
-                    and followed by "of", indicating this neuron plays a role in signaling to future layers
-                    that the capital of a city needs to be predicted.
+                    this neuron activates most strongly when the words "city", "capital", or "town"
+                    are followed by "of" or "in", indicating this neuron plays a role in signaling to future layers
+                    that a capital, town, or city needs to be located to a broader geographical context.
                 </p>
             </li>
             <li>
