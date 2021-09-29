@@ -286,7 +286,7 @@ function Viewer() {
                                     Prompts that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
                                 </b>
                                 <b>
-                                    <Link to={`/cluster?neuron=${selectedNeuron.l}-${selectedNeuron.f}`}>
+                                    <Link to={`${process.env.PUBLIC_URL}/cluster?neuron=${selectedNeuron.l}-${selectedNeuron.f}`}>
                                         find in cluster
                                     </Link>
                                 </b>
