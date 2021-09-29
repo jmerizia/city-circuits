@@ -12,7 +12,7 @@ type ClusterData = {
 }
 
 function hashNeuron(neuron: NeuronId) {
-    return 10000 * neuron[0] + neuron[1];
+    return 100000 * neuron[0] + neuron[1];
 }
 
 function Cluster() {

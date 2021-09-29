@@ -15,6 +15,7 @@ import {
     range,
     zip
 } from './utils';
+import { Link } from 'react-router-dom';
 
 
 function Viewer() {
@@ -280,9 +281,16 @@ function Viewer() {
                 <div className='top-right'>
                     <div className='matches'>
                         {selectedNeuron &&
-                            <p>
-                                Prompts that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
-                            </p>
+                            <>
+                                <b>
+                                    Prompts that activate neuron <b>{selectedNeuron.l}, {selectedNeuron.f}</b>:
+                                </b>
+                                <b>
+                                    <Link to={`/cluster?neuron=${selectedNeuron.l}-${selectedNeuron.f}`}>
+                                        find in cluster
+                                    </Link>
+                                </b>
+                            </>
                         }
                         {selectedNeuron && neuronMatches
                             .slice(0, 30)

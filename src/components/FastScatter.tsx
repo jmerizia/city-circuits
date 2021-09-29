@@ -4,7 +4,7 @@ import { range, zip } from '../utils';
 import { kdTree } from 'kd-tree-javascript';
 
 
-const MAX_ZOOM = 1000;
+const MAX_ZOOM = 10000;
 const MIN_ZOOM = 0.5;
 
 
