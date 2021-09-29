@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import FastScatter from './components/FastScatter';
-import { Example, getClusterData, getDataset, getNeuronMatches, NeuronMatches, range, zip } from './utils';
+import { Example, getClusterData, getDataset, getNeuronMatches, NeuronMatches, zip } from './utils';
 
 
 type NeuronId = [number, number];
@@ -11,6 +11,10 @@ type ClusterData = {
     neurons: NeuronId[];
 }
 
+function hashNeuron(neuron: NeuronId) {
+    return 10000 * neuron[0] + neuron[1];
+}
+
 function Cluster() {
     const [data, setClusterData] = useState<ClusterData | null>(null);
     const [width, setWidth] = useState(0);
@@ -18,15 +22,57 @@ function Cluster() {
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [neuronMatches, setNeuronMatches] = useState<NeuronMatches[]>([]);
     const [dataset, setDataset] = useState<Example[] | null>(null);
+    const neuronLookup = useRef<Map<number, number> | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const onUpdateNeuron = (neuron: [number, number] | null) => {
+        const q = new URLSearchParams(window.location.search);
+        if (neuron) {
+            q.set('neuron', neuron[0].toString() + '-' + neuron[1].toString());
+        } else {
+            q.delete('neuron');
+        }
+        var newRelativePathQuery = window.location.pathname + '?' + q.toString();
+        window.history.replaceState(null, '', newRelativePathQuery);
+        if (!neuron) {
+            setSelectedIdx(null);
+        } else {
+            if (neuronLookup.current) {
+                const idx = neuronLookup.current.get(hashNeuron(neuron));
+                if (idx !== undefined) {
+                    setSelectedIdx(idx);
+                } else {
+                    setSelectedIdx(null);
+                }
+            }
+        }
+    };
 
     // load the data
     useEffect(() => {
         (async () => {
             const data = await getClusterData();
             setClusterData(data);
+            neuronLookup.current = new Map();
+            for (let i = 0; i < data.neurons.length; i++) {
+                neuronLookup.current.set(hashNeuron(data.neurons[i]), i);
+            }
             const dataset = await getDataset();
             setDataset(dataset);
+            const neuron = new URLSearchParams(window.location.search).get('neuron');
+            if (neuron) {
+                const parts = neuron.split('-');
+                if (parts.length === 2) {
+                    const l = parseInt(parts[0]);
+                    const f = parseInt(parts[1]);
+                    if (!isNaN(l) && !isNaN(f)) {
+                        const idx = neuronLookup.current.get(hashNeuron([l, f]));
+                        if (idx !== undefined) {
+                            setSelectedIdx(idx);
+                        }
+                    }
+                }
+            }
         })();
     }, []);
 
@@ -79,7 +125,7 @@ function Cluster() {
                     }}
                     selectedIdx={selectedIdx}
                     onChangeSelectedIdx={(idx) => {
-                        setSelectedIdx(idx);
+                        onUpdateNeuron(idx ? data.neurons[idx] : null);
                     }}
                 />
             </div>

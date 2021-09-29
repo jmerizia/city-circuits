@@ -91,8 +91,6 @@ function FastScatter({ x, y, width, height, marker, selectedIdx, onChangeSelecte
     const localBottom = centerY - localDataHeight / 2;
     const localTop = centerY + localDataHeight / 2;
 
-    const markerSize = marker?.size ?? 3;
-
     // build the kd tree
     useEffect(() => {
         const points = zip(x, y).map(([x, y], idx) => ({ x, y, idx }));
@@ -185,7 +183,7 @@ function FastScatter({ x, y, width, height, marker, selectedIdx, onChangeSelecte
                 zoom: zoomUniform,
             };
         }
-    }, [canvasRef, x, y, marker]);
+    }, [canvasRef, x, y, marker, dataHeight, dataWidth]);
 
     // start the loop
     useEffect(() => {
@@ -323,7 +321,13 @@ function FastScatter({ x, y, width, height, marker, selectedIdx, onChangeSelecte
             window.removeEventListener('mousedown', onMouseDown);
             window.removeEventListener('mouseup', onMouseUp);
         };
-    }, [canvasRef, width, height, zoom, mouseX, mouseY, isDragging, dragStartMouseX, dragStartMouseY, dragStartCenterX, dragStartCenterY, centerX, centerY, localDataWidth, localDataHeight, localLeft, localRight, localBottom, localTop, dataWidth, dataHeight]);
+    }, [canvasRef, width, height, zoom,
+        mouseX, mouseY, isDragging,
+        dragStartMouseX, dragStartMouseY, dragStartCenterX, dragStartCenterY,
+        centerX, centerY,
+        localDataWidth, localDataHeight,
+        localLeft, localRight, localBottom, localTop,
+        dataWidth, dataHeight, hoveringIdx, onChangeSelectedIdx]);
 
     const hoveringBlockX = hoveringIdx !== null ? (convertToWebGLCoords((x[hoveringIdx] - centerX) * zoom, dataWidth) + 2) / 2 * width : null;
     const hoveringBlockY = hoveringIdx !== null ? (convertToWebGLCoords((y[hoveringIdx] - centerY) * zoom, dataHeight) + 2) / 2 * height : null;
