@@ -76,6 +76,15 @@ export type NeuronMatches = {
     activations: number[];
 };
 
+export type NeuronId = [number, number];
+
+export type ClusterData = {
+    x: number[];
+    y: number[];
+    neurons: NeuronId[];
+}
+
+
 export async function getNeuronData(exampleIdx: number): Promise<NeuronData> {
     const n = exampleIdx.toString().padStart(5, '0');
     const res = await fetch(`${getBaseIndexPath()}/example-${n}.json`);
@@ -92,6 +101,12 @@ export async function getNeuronMatches(l: number, f: number): Promise<NeuronMatc
 
 export async function getDataset(): Promise<Example[]> {
     const res = await fetch(`${process.env.PUBLIC_URL}/dataset-with-tokens.json`)
+    const dataset = await res.json();
+    return dataset;
+}
+
+export async function getClusterData(): Promise<ClusterData> {
+    const res = await fetch(`${getBaseIndexPath()}/cluster.json`)
     const dataset = await res.json();
     return dataset;
 }

@@ -6,7 +6,34 @@ body {
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* height: 100vh; */
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+#root {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-bar {
+    height: 30px;
+    border-bottom: thin solid #eee;
+    line-height: 30px;
+}
+
+.nav-bar-link {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.below-nav-bar {
+    flex: 1;
 }
 
 .main-page {
@@ -34,12 +61,6 @@ body {
 
 .main-button:hover {
     opacity: 0.5;
-}
-
-#root {
-    width: 100%;
-    height: 100%;
-    height: 100vh;
 }
 
 code {
@@ -180,4 +201,13 @@ code {
     width: 100%;
     height: 100%;
     display: flex;
+}
+
+.cluster-left {
+    flex: 3;
+}
+
+.cluster-right {
+    flex: 1;
+    border: thin solid black;
 }
