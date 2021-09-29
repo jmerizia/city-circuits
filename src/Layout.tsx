@@ -20,6 +20,11 @@ function Layout({ children }: LayoutProps) {
             <Link to={`${process.env.PUBLIC_URL}/cluster`} className='nav-bar-link'>
                 neuron cluster
             </Link>
+            <a href='https://github.com/jmerizia/city-circuits' className='nav-bar-icon-right'>
+                <img
+                    src={`${process.env.PUBLIC_URL}/github-icon.svg`}
+                />
+            </a>
         </div>
         <div className='below-nav-bar'>
             {children}

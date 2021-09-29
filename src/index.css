@@ -32,6 +32,17 @@ body {
     padding-right: 5px;
 }
 
+.nav-bar-icon-right {
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 3px;
+    float: right;
+}
+
+.nav-bar-icon-right:hover {
+    opacity: 0.5;
+}
+
 .below-nav-bar {
     flex: 1;
 }
