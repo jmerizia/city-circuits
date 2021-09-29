@@ -78,6 +78,7 @@ function Cluster() {
 
     useEffect(() => {
         // on resize
+        if (!data || !dataset) return;
         const onResize = () => {
             if (containerRef.current) {
                 const width = containerRef.current.clientWidth;
@@ -93,7 +94,7 @@ function Cluster() {
         return () => {
             window.removeEventListener('resize', onResize);
         };
-    }, [containerRef]);
+    }, [data, dataset, containerRef]);
 
     const selectedNeuron = data && selectedIdx !== null && data.neurons[selectedIdx];
 
