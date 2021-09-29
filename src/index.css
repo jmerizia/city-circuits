@@ -189,7 +189,6 @@ code {
 }
 
 .match {
-    flex: 1;
     margin: 5px;
     padding: 2px;
     background-color: #eee;
@@ -209,5 +208,5 @@ code {
 
 .cluster-right {
     flex: 1;
-    border: thin solid black;
+    position: relative;
 }

@@ -4,7 +4,7 @@ import { range, zip } from '../utils';
 import { kdTree } from 'kd-tree-javascript';
 
 
-const MAX_ZOOM = 20;
+const MAX_ZOOM = 1000;
 const MIN_ZOOM = 0.5;
 
 
@@ -28,35 +28,6 @@ function arrayMax<T>(v: T[]): T {
     return max;
 }
 
-function computeVerticesForPoints(
-    x: number[],
-    y: number[],
-    radius: number,
-    parts: number,
-    stretchX: number,
-    stretchY: number,
-): { vertices: number[], indices: number[] } {
-    const vertices: number[] = [];
-    for (let i = 0; i < x.length; i++) {
-        const x0 = x[i];
-        const y0 = y[i];
-        const angle = 2 * Math.PI / parts;
-        for (let j = 0; j < parts; j++) {
-            const x1 = x0 + radius * Math.cos(j * angle) * stretchX;
-            const y1 = y0 + radius * Math.sin(j * angle) * stretchY;
-            const x2 = x0 + radius * Math.cos((j + 1) * angle) * stretchX;
-            const y2 = y0 + radius * Math.sin((j + 1) * angle) * stretchY;
-            vertices.push(
-                x0, y0,
-                x1, y1,
-                x2, y2,
-            );
-        }
-    }
-    const indices = range(0, x.length * parts * 3);
-    return { vertices, indices };
-}
-
 function convertToWebGLCoords(v: number, dataWidth: number): number {
     return v / dataWidth * 2 - 1;
 }
@@ -68,31 +39,6 @@ function distance(
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 };
 
-// function drawDots(
-//     canvas: HTMLCanvasElement,
-//     x: number[],
-//     y: number[],
-//     dotSize: number,
-//     left: number,
-//     right: number,
-//     top: number,
-//     bottom: number,
-// ) {
-//     const ctx = canvas.getContext('2d');
-//     if (ctx) {
-//         // clear
-//         ctx.clearRect(0, 0, canvas.width, canvas.height);
-//         for (let i = 0; i < x.length; i++) {
-//             ctx.fillStyle = 'rgba(0, 100, 0, 1)';
-//             ctx.beginPath();
-//             const canvasX = (x[i] - left) / (right - left) * canvas.width;
-//             const canvasY = (y[i] - top) / (bottom - top) * canvas.height;
-//             ctx.arc(canvasX, canvasY, dotSize, 0, 2 * Math.PI);
-//             ctx.fill();
-//         }
-//     }
-// }
-
 interface FastScatterProps {
     x: number[];
     y: number[];
@@ -101,13 +47,14 @@ interface FastScatterProps {
     marker?: {
         size?: number;
     },
+    selectedIdx: number | null,
     onChangeSelectedIdx?: (idx: number | null) => void;
 }
 
 /**
  * Custom WebGL / KD-Tree optimized scatter plot for rendering millions of points.
  */
-function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastScatterProps) {
+function FastScatter({ x, y, width, height, marker, selectedIdx, onChangeSelectedIdx }: FastScatterProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const [xMin, setXMin] = useState(0);
     const [xMax, setXMax] = useState(0);
@@ -163,10 +110,9 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
             // normalize x and y
             const normalizedX = x.map(x0 => convertToWebGLCoords(x0, dataWidth));
             const normalizedY = y.map(y0 => convertToWebGLCoords(y0, dataHeight));
-            const { vertices, indices } = computeVerticesForPoints(
-                normalizedX, normalizedY,
-                markerSize * 2 / canvasRef.current.width,
-                20, canvasRef.current.height / canvasRef.current.width, 1);
+            const vertices: number[] = [];
+            for (let i = 0; i < x.length; i++) vertices.push(normalizedX[i], normalizedY[i]);
+            const indices = range(0, x.length);
             indicesRef.current = indices;
 
             // set up buffers
@@ -190,8 +136,9 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
                             gl_Position = vec4(
                                 (coordinates - center) * zoom,
                                 0.0,
-                                0.5
+                                1.0
                             );
+                            gl_PointSize = 5.0;
                         }
                     `,
                     fs: `
@@ -251,7 +198,7 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
                 const normalizedCenterY = convertToWebGLCoords(centerY, dataHeight);
                 gl.uniform2fv(uniformsRef.current.center, [normalizedCenterX, normalizedCenterY]);
                 gl.uniform1f(uniformsRef.current.zoom, zoom);
-                gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+                gl.drawElements(gl.POINTS, indices.length, gl.UNSIGNED_INT, 0);
             }
             frameId = window.requestAnimationFrame(render);
         }
@@ -280,11 +227,18 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
 
     useEffect(() => {
         const onWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            const delta = e.deltaY;
-            const newZoom = Math.min(Math.max(zoom - delta / 100, MIN_ZOOM), MAX_ZOOM);
-            // move the center proportionally to the current mouse position
-            setZoom(newZoom);
+            if (canvasRef.current &&
+                mouseX >= 0 &&
+                mouseX <= canvasRef.current.width &&
+                mouseY >= 0 &&
+                mouseY <= canvasRef.current.height)
+            {
+                e.preventDefault();
+                const delta = e.deltaY;
+                const newZoom = Math.min(Math.max(zoom - delta / 300 * zoom, MIN_ZOOM), MAX_ZOOM);
+                // move the center proportionally to the current mouse position
+                setZoom(newZoom);
+            }
         };
         const onMouseMove = (e: MouseEvent) => {
             if (canvasRef.current) {
@@ -320,7 +274,7 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
                             const closestPoints = kdTreeRef.current.nearest(point, 1);
                             if (closestPoints.length > 0) {
                                 const [closestPoint, dist] = closestPoints[0];
-                                if (dist < markerSize / 4) {
+                                if (dist < 0.5) {
                                     setHoveringIdx(closestPoint.idx);
                                 } else {
                                     setHoveringIdx(null);
@@ -332,18 +286,32 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
             }
         };
         const onMouseDown = (e: MouseEvent) => {
-            setDragStartMouseX(mouseX);
-            setDragStartMouseY(mouseY);
-            setDragStartCenterX(centerX);
-            setDragStartCenterY(centerY);
-            setIsDragging(true);
+            if (canvasRef.current &&
+                mouseX >= 0 &&
+                mouseX <= canvasRef.current.width &&
+                mouseY >= 0 &&
+                mouseY <= canvasRef.current.height)
+            {
+                setDragStartMouseX(mouseX);
+                setDragStartMouseY(mouseY);
+                setDragStartCenterX(centerX);
+                setDragStartCenterY(centerY);
+                setIsDragging(true);
+            }
         };
         const onMouseUp = (e: MouseEvent) => {
-            // if we haven't moved the moouse, then we clicked
-            if (onChangeSelectedIdx && (dragStartMouseX === mouseX || dragStartMouseY === mouseY)) {
-                onChangeSelectedIdx(hoveringIdx);
+            if (canvasRef.current &&
+                mouseX >= 0 &&
+                mouseX <= canvasRef.current.width &&
+                mouseY >= 0 &&
+                mouseY <= canvasRef.current.height)
+            {
+                // if we haven't moved the mouse, then we clicked
+                if (onChangeSelectedIdx && (dragStartMouseX === mouseX || dragStartMouseY === mouseY)) {
+                    onChangeSelectedIdx(hoveringIdx);
+                }
+                setIsDragging(false);
             }
-            setIsDragging(false);
         };
         window.addEventListener('wheel', onWheel, { passive: false });
         window.addEventListener('mousemove', onMouseMove, { passive: false });
@@ -357,20 +325,20 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
         };
     }, [canvasRef, width, height, zoom, mouseX, mouseY, isDragging, dragStartMouseX, dragStartMouseY, dragStartCenterX, dragStartCenterY, centerX, centerY, localDataWidth, localDataHeight, localLeft, localRight, localBottom, localTop, dataWidth, dataHeight]);
 
-    // useEffect(() => {
-    //     if (canvasRef.current) {
-    //         // const dotSize = (marker?.size ? marker.size : 2) * zoom;
-    //         // drawDots(canvasRef.current, x, y, dotSize, left, right, top, bottom);
-    //     }
-    // }, [canvasRef, width, height, x, y, zoom, centerX, centerY, xMax, xMin, yMax, yMin]);
+    const hoveringBlockX = hoveringIdx !== null ? (convertToWebGLCoords((x[hoveringIdx] - centerX) * zoom, dataWidth) + 2) / 2 * width : null;
+    const hoveringBlockY = hoveringIdx !== null ? (convertToWebGLCoords((y[hoveringIdx] - centerY) * zoom, dataHeight) + 2) / 2 * height : null;
+    const selectedBlockX = selectedIdx !== null ? (convertToWebGLCoords((x[selectedIdx] - centerX) * zoom, dataWidth) + 2) / 2 * width : null;
+    const selectedBlockY = selectedIdx !== null ? (convertToWebGLCoords((y[selectedIdx] - centerY) * zoom, dataHeight) + 2) / 2 * height : null;
 
     return <div style={{ position: 'relative' }}>
+        {/* canvas w/ WebGL for speed */}
         <canvas
             ref={canvasRef}
             width={width}
             height={height}
             style={{ width, height }}
         />
+        {/* regular markup for the overlays for simplicity */}
         <div style={{
             position: 'absolute',
             left: 0,
@@ -378,18 +346,28 @@ function FastScatter({ x, y, width, height, marker, onChangeSelectedIdx }: FastS
             bottom: 0,
             top: 0,
             pointerEvents: 'none',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.0)',
         }}>
-            <div style={{
-                position: 'absolute',
-                left: `${10}px`,
-                bottom: `${10}px`,
-                width: '10px',
-                height: '10px',
-                backgroundColor: 'red',
-            }}>
-
-            </div>
+            {hoveringIdx !== null && hoveringBlockX !== null && hoveringBlockY !== null &&
+                <div style={{
+                    position: 'absolute',
+                    left: `${hoveringBlockX - 2.5}px`,
+                    bottom: `${hoveringBlockY + 2}px`,
+                    width: '5px',
+                    height: '5px',
+                    backgroundColor: 'red',
+                }} />
+            }
+            {selectedIdx !== null && selectedBlockX !== null && selectedBlockY !== null &&
+                <div style={{
+                    position: 'absolute',
+                    left: `${selectedBlockX - 2.5}px`,
+                    bottom: `${selectedBlockY + 2}px`,
+                    width: '5px',
+                    height: '5px',
+                    backgroundColor: 'cyan',
+                }} />
+            }
         </div>
     </div>;
 }
